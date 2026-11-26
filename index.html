@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Seven</title>
+<meta name="theme-color" content="#EDF0F5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1322" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Daily Seven">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=Inter:wght@400;500;600&display=swap">
+<style>
+/* Layout: one narrow column. Date, title and progress ring up top, seven big tap rows, the week strip at the foot. */
+:root{
+  --bg:#EDF0F5; --surface:#FFFFFF; --ink:#131A2B; --muted:#5A637A; --line:#D7DCE6;
+  --gold:#B57710; --gold-soft:#F7EBD2; --on-gold:#FFFFFF;
+  --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
+  --body:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){color-scheme:dark;--bg:#0D1322;--surface:#161F33;--ink:#EDF1F8;--muted:#8E98AF;--line:#26314B;--gold:#F0B33F;--gold-soft:#33291A;--on-gold:#1A1405}
+}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0D1322;--surface:#161F33;--ink:#EDF1F8;--muted:#8E98AF;--line:#26314B;--gold:#F0B33F;--gold-soft:#33291A;--on-gold:#1A1405}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;font-size:14px;background:var(--bg);color:var(--ink);font-family:var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  -webkit-tap-highlight-color:transparent}
+.app{max-width:480px;margin:0 auto;padding-block:calc(env(safe-area-inset-top,0px) + 20px) calc(env(safe-area-inset-bottom,0px) + 32px);display:flex;flex-direction:column;gap:20px}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600}
+h1{font-family:var(--display);font-weight:800;font-size:46px;line-height:.95;margin:6px 0 0;text-transform:uppercase;letter-spacing:.01em;text-wrap:balance}
+.streak{font-size:14px;color:var(--muted);margin-top:10px;line-height:1.4}
+.streak b{color:var(--gold);font-weight:600}
+
+.ring{position:relative;width:108px;height:108px;flex:none}
+.ring svg{transform:rotate(-90deg);display:block}
+.ring circle{fill:none;stroke-width:9}
+.ring .track{stroke:var(--line)}
+.ring .fill{stroke:var(--gold);stroke-linecap:round;transition:stroke-dashoffset .5s cubic-bezier(.2,.8,.2,1)}
+.ring .count{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:40px;font-variant-numeric:tabular-nums}
+.ring .count small{font-size:20px;color:var(--muted)}
+
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.habit{width:100%;display:grid;grid-template-columns:78px 1fr 32px;align-items:center;gap:14px;padding:14px 16px;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;color:inherit;font:inherit;text-align:left;cursor:pointer;
+  transition:background .2s,border-color .2s,transform .1s}
+.habit:active{transform:scale(.98)}
+.habit:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.qty{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;white-space:nowrap}
+.qty span{font-size:16px;color:var(--muted);margin-left:2px}
+.name{font-weight:600;font-size:16px}
+.sub{font-size:13px;color:var(--muted);margin-top:2px}
+.box{width:32px;height:32px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;transition:background .2s,border-color .2s}
+.box svg{opacity:0;transform:scale(.4);transition:opacity .2s,transform .25s cubic-bezier(.3,1.6,.5,1)}
+.box path{fill:none;stroke:var(--on-gold);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.habit[aria-pressed="true"]{background:var(--gold-soft);border-color:var(--gold)}
+.habit[aria-pressed="true"] .box{background:var(--gold);border-color:var(--gold)}
+.habit[aria-pressed="true"] .box svg{opacity:1;transform:none}
+.habit[aria-pressed="true"] .qty span{color:var(--gold)}
+
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 12px}
+.day{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.pip{width:100%;max-width:28px;height:40px;border-radius:8px;background:var(--line);position:relative;overflow:hidden}
+.pip i{position:absolute;left:0;right:0;bottom:0;background:var(--gold);opacity:.55}
+.pip.full i{opacity:1}
+.day.today{color:var(--ink)}
+.label{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:-10px}
+.tip{font-size:12px;color:var(--muted);line-height:1.5;text-align:center;margin:0}
+
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <div>
+      <div class="eyebrow" id="date">Today</div>
+      <h1>Daily Seven</h1>
+      <div class="streak" id="streak">Finish all seven to start a streak.</div>
+    </div>
+    <div class="ring" aria-hidden="true">
+      <svg width="108" height="108" viewBox="0 0 108 108">
+        <circle class="track" cx="54" cy="54" r="48"></circle>
+        <circle class="fill" id="ringFill" cx="54" cy="54" r="48" stroke-dasharray="301.6" stroke-dashoffset="301.6"></circle>
+      </svg>
+      <div class="count"><span><span id="count">0</span><small>/7</small></span></div>
+    </div>
+  </header>
+
+  <ul class="list" id="list"></ul>
+
+  <div class="label">This week</div>
+  <div class="week" id="week"></div>
+
+  <p class="tip" id="tip">Add it to your home screen. iPhone: Share, then Add to Home Screen. Android: the ⋮ menu, then Add to Home screen.</p>
+</div>
+
+<script>
+const HABITS=[
+  {q:"10,000",u:"",n:"Steps",s:"Walk, run, keep moving"},
+  {q:"100",u:"",n:"Push-ups",s:"Break it into sets"},
+  {q:"10",u:"min",n:"Prayer",s:"Quiet time with God"},
+  {q:"1",u:"ch",n:"Bible",s:"Read one chapter"},
+  {q:"1",u:"gal",n:"Water",s:"A full gallon"},
+  {q:"1",u:"",n:"Act of service",s:"Do something for someone"},
+  {q:"1",u:"",n:"Encourage a brother",s:"Call, text, or tell him"}
+];
+const KEY="daily-seven-v1", C=301.6;
+let hist={};
+try{hist=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){hist={}}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(hist))}catch(e){}};
+const dkey=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const done=k=>hist[k]||[];
+let today=dkey(new Date());
+
+const list=document.getElementById("list");
+const check='<svg width="16" height="16" viewBox="0 0 16 16"><path d="M3 8.5l3.2 3.2L13 4.8"/></svg>';
+HABITS.forEach((h,i)=>{
+  const li=document.createElement("li");
+  li.innerHTML=`<button class="habit" id="h${i}" aria-pressed="false">
+    <span class="qty">${h.q}${h.u?`<span>${h.u}</span>`:""}</span>
+    <span><div class="name">${h.n}</div><div class="sub">${h.s}</div></span>
+    <span class="box">${check}</span></button>`;
+  li.firstElementChild.addEventListener("click",()=>toggle(i));
+  list.appendChild(li);
+});
+
+function toggle(i){
+  const d=new Set(done(today));
+  d.has(i)?d.delete(i):d.add(i);
+  hist[today]=[...d];
+  save();
+  try{navigator.vibrate&&navigator.vibrate(d.size===7?[20,60,20]:12)}catch(e){}
+  render();
+}
+
+function streak(){
+  const d=new Date();let n=0;
+  if(done(dkey(d)).length<7)d.setDate(d.getDate()-1);
+  while(done(dkey(d)).length>=7){n++;d.setDate(d.getDate()-1)}
+  return n;
+}
+
+function render(){
+  const now=new Date(), d=done(today);
+  document.getElementById("date").textContent=now.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"});
+  HABITS.forEach((_,i)=>document.getElementById("h"+i).setAttribute("aria-pressed",d.includes(i)));
+  document.getElementById("count").textContent=d.length;
+  document.getElementById("ringFill").setAttribute("stroke-dashoffset",C*(1-d.length/7));
+  const s=streak();
+  document.getElementById("streak").innerHTML=
+    d.length===7?`All seven done today. <b>${s}-day streak.</b>`:
+    s>0?`<b>${s}-day streak.</b> ${7-d.length} to go today.`:
+    `${7-d.length} to go today. Finish all seven to start a streak.`;
+  const week=document.getElementById("week");week.innerHTML="";
+  for(let k=6;k>=0;k--){
+    const day=new Date(now);day.setDate(now.getDate()-k);
+    const n=done(dkey(day)).length;
+    const el=document.createElement("div");
+    el.className="day"+(k===0?" today":"");
+    el.innerHTML=`<div class="pip${n===7?" full":""}"><i style="height:${n/7*100}%"></i></div>${day.toLocaleDateString(undefined,{weekday:"narrow"})}`;
+    week.appendChild(el);
+  }
+}
+
+function rollover(){const k=dkey(new Date());if(k!==today){today=k;render()}}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)rollover()});
+setInterval(rollover,60000);
+render();
+if(matchMedia("(display-mode: standalone)").matches||navigator.standalone)document.getElementById("tip").hidden=true;
+if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script>
+</body>
+</html>
